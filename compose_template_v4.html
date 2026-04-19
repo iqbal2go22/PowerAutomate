@@ -108,7 +108,7 @@
   .kpi-cost .kpi-value { color: var(--accent); }
 
   /* Cost breakdown section */
-  .cost-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 12px; }
+  .cost-breakdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 12px; }
   .cost-breakdown .cost-item {
     background: var(--surface-muted);
     border: 1px solid var(--border);
@@ -575,6 +575,11 @@
         <div class="cost-value">${fmtNum(cost.serper_searches)} search${cost.serper_searches === 1 ? '' : 'es'}</div>
         <div class="cost-usd">${fmtUSD(cost.estimated_serper_usd)}</div>
       </div>
+      <div class="cost-item">
+        <div class="cost-service">Google Gemini</div>
+        <div class="cost-value">${fmtNum(cost.google_api_calls)} call${cost.google_api_calls === 1 ? '' : 's'}</div>
+        <div class="cost-usd">${fmtUSD(cost.estimated_google_usd)}</div>
+      </div>
     </div>
     <div class="cost-disclaimer">${cost.conversion_rates_disclaimer || 'Estimated USD based on approximate rates.'}</div>
   </section>`;
@@ -588,7 +593,9 @@
     <div class="meta-item"><div class="label">AI Builder Credits</div><div class="value">${fmtNum(cost.ai_builder_credits)}</div></div>
     <div class="meta-item"><div class="label">Firecrawl Credits</div><div class="value">${fmtNum(cost.firecrawl_credits)}</div></div>
     <div class="meta-item"><div class="label">Serper Searches</div><div class="value">${fmtNum(cost.serper_searches)}</div></div>
+    <div class="meta-item"><div class="label">Google API Calls</div><div class="value">${fmtNum(cost.google_api_calls)}</div></div>
     <div class="meta-item"><div class="label">Image Agent</div><div class="value">${cost.image_agent_fired === true ? 'fired' : 'not needed'}</div></div>
+    <div class="meta-item"><div class="label">Lifestyle Image</div><div class="value">${cost.lifestyle_generated === true ? 'generated' : 'not generated'}</div></div>
     <div class="meta-item"><div class="label">Fields Extracted</div><div class="value">${ext.extraction_metadata?.total_fields_extracted || '—'}</div></div>
     <div class="meta-item"><div class="label">Overall Confidence</div><div class="value">${overall || 0}%</div></div>
     <div class="meta-item"><div class="label">Total Cost (est.)</div><div class="value" style="color:var(--accent);font-weight:600;">${fmtUSD(cost.estimated_total_usd)}</div></div>
