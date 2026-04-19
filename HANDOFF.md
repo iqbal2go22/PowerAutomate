@@ -1,6 +1,6 @@
 # SiteOne Item Enrichment POC — Agent Handoff
 
-**Last updated:** Apr 19, 2026 — **STEP 32-2 COMPLETE (end-to-end save working, Brilliance validated).** Lifestyle image generation via Gemini Nano Banana 2 (gemini-3.1-flash-image-preview) fully functional end-to-end: Filter array → Compose ref URL → Condition → HTTP download → HTTP Gemini → Parse JSON → OneDrive save all working. Y14 RESOLVED: Gemini returns a single-element `parts` array (image at `[0]`, not `[1]` as originally assumed). Fix = `coalesce(parts[0].inlineData.data, parts[1].inlineData.data)` in base64ToBinary expression — handles both 1-part and 2-part response shapes. Diagnosed via a surgical `Compose - Gemini Debug` action that printed `candidate_count / finish_reason / parts_length / prompt_feedback / safety_ratings` (the 1.8MB response body was too large to paste; this Compose boiled it down to 5 signals). Debug Compose still in flow, slated for removal before production. Remaining Step 32 work: 32-3 cost tracker wiring, 32-4 HTML preview section, 32-5 Intermatic validation. Y12 image model swap to GPT-4.1 done. Step 31 email body redesign shipped.
+**Last updated:** Apr 19, 2026 — **STEP 32-3b COMPLETE.** `Increment - Google API Calls` action added immediately after `HTTP - Gemini Lifestyle 1` inside the TRUE branch of `Check - Has Reference Image`. Increments `google_api_calls_total` by 1 per Gemini call. Matches Step 28 convention (Increment sits directly after the service call it tracks). Previous: STEP 32-3a COMPLETE — new top-level variable `Init - Google API Calls Total` (Integer, init 0, var name `google_api_calls_total`) added alongside existing cost tracker variables. STEP 32-2 COMPLETE (end-to-end save working, Brilliance validated). Lifestyle image generation via Gemini Nano Banana 2 (gemini-3.1-flash-image-preview) fully functional end-to-end: Filter array → Compose ref URL → Condition → HTTP download → HTTP Gemini → Parse JSON → OneDrive save all working. Y14 RESOLVED: Gemini returns a single-element `parts` array (image at `[0]`, not `[1]` as originally assumed). Fix = `coalesce(parts[0].inlineData.data, parts[1].inlineData.data)` in base64ToBinary expression. `Compose - Gemini Debug` still in flow, slated for removal before production. Remaining Step 32 work: 32-3b Increment action, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost breakdown update, 32-4 HTML preview lifestyle section, 32-5 Intermatic validation. Y12 image model swap to GPT-4.1 done. Step 31 email body redesign shipped.
 **User:** Tony — Governance & Data Quality, SiteOne Landscape Supply
 
 ---
@@ -95,6 +95,7 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
 12. Init - AI Builder Credits Total (cost tracker Step 28)
 13. Init - Firecrawl Credits Total
 14. Init - Serper Searches Total
+14b. Init - Google API Calls Total (Step 32-3a — Gemini lifestyle cost line)
 15. HTTP (Serper)
 16. Increment - Serper Searches (+1)
 17. Parse JSON (Serper response)
@@ -321,7 +322,11 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
 - ✅ 32-2f `Parse JSON - Gemini Lifestyle 1` (hardened schema, additionalProperties: true everywhere)
 - ✅ 32-2g `OneDrive - Save Lifestyle Image 1` — WORKING after Y14 fix (coalesce parts[0]/parts[1] pattern). Validated on Brilliance Apr 19 — PNG saved successfully.
 - 🟡 **Diagnostic Compose still in place** — `Compose - Gemini Debug` sits between Parse JSON and OneDrive save. Useful if we hit another response-shape variant. Remove before production.
-- ❌ 32-3 Cost tracker — new variable `google_api_calls_total`, Increment after HTTP Gemini, add to Compose - Cost Metadata
+- 🟡 32-3 Cost tracker wiring (in progress):
+  - ✅ 32-3a `Init - Google API Calls Total` top-level variable added (Integer, `google_api_calls_total`, value 0)
+  - ✅ 32-3b `Increment - Google API Calls` action placed immediately after `HTTP - Gemini Lifestyle 1` inside TRUE branch of `Check - Has Reference Image`; increments `google_api_calls_total` by 1
+  - ❌ 32-3c Add `google_api_calls` + `estimated_google_usd` + rolled-up `estimated_total_usd` to `Compose - Cost Metadata`
+  - ❌ 32-3d Update compose_template_v4.html Cost Breakdown section + footer to show Google API as 4th cost line
 - ❌ 32-4 HTML preview section "Generated Lifestyle Images" in compose_template_v4.html (separate section per Tony's choice, not in CSV)
 - ❌ 32-5 End-to-end validation on Intermatic run (Brilliance validated Apr 19; Intermatic still pending)
 
