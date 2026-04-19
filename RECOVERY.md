@@ -2,7 +2,7 @@
 
 **Purpose:** Complete configuration of every action, expression, schema, and prompt so the entire flow can be rebuilt from scratch if destroyed or corrupted.
 **Companion to:** `HANDOFF.md` (project context and status)
-**Last updated:** Apr 19, 2026 — Step 32-3b complete. `Increment - Google API Calls` action added directly after `HTTP - Gemini Lifestyle 1` in the TRUE branch of `Check - Has Reference Image`; increments `google_api_calls_total` by 1 per Gemini call. See Section V3 Increment actions table. Previous: Step 32-3a complete (new top-level variable `Init - Google API Calls Total`, Integer, init 0). Step 32-2 complete end-to-end. Lifestyle image generation via Gemini Nano Banana 2 working (Brilliance validated Apr 19). Y14 RESOLVED: Gemini returns 1 part (image at `[0]`) — not 2 (text + image at `[1]`) as initial build assumed. Fix = coalesce pattern on parts index. Diagnostic `Compose - Gemini Debug` added between Parse JSON and Save (remove before prod). Step 31 email body redesign complete. Remaining Step 32 work: 32-3b Increment, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost line, 32-4 HTML lifestyle section, 32-5 Intermatic validation. See Section Z for full Step 32 action configs.
+**Last updated:** Apr 19, 2026 — **Step 32 fully complete end-to-end.** Step 32-3 cost tracker (variable + Increment + Compose - Cost Metadata 4-service rollup + HTML template Google Gemini card + footer rows), Step 32-4 HTML preview "Generated Lifestyle Images" section with base64 inline PNG rendering, and Step 32-5 Intermatic end-to-end validation all done Apr 19. Section U now lists all 10 new Step 32 action names. Section V3 Compose - Cost Metadata block updated to 4-service version (Google $0.045/call) with new `lifestyle_generated` boolean. Section Z marked fully complete. `Compose - Gemini Debug` retained in flow — remove before production. Previous: Step 32-2 end-to-end Brilliance validation; Y14 resolved via coalesce parts[0]/parts[1]; Step 31 email body redesign complete. Lifestyle image generation via Gemini Nano Banana 2 working (Brilliance validated Apr 19). Y14 RESOLVED: Gemini returns 1 part (image at `[0]`) — not 2 (text + image at `[1]`) as initial build assumed. Fix = coalesce pattern on parts index. Diagnostic `Compose - Gemini Debug` added between Parse JSON and Save (remove before prod). Step 31 email body redesign complete. Remaining Step 32 work: 32-3b Increment, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost line, 32-4 HTML lifestyle section, 32-5 Intermatic validation. See Section Z for full Step 32 action configs.
 
 ---
 
@@ -1525,6 +1525,16 @@ Power Automate converts action display names to internal names by replacing spac
 | `Compose - Extraction Metadata` | `Compose_-_Extraction_Metadata` |
 | `Compose - HTML Preview` | `Compose_-_HTML_Preview` |
 | `OneDrive - Save HTML Preview` | `OneDrive_-_Save_HTML_Preview` |
+| `Init - Google API Calls Total` *(Step 32-3a)* | `Init_-_Google_API_Calls_Total` |
+| `Filter array - Product Images Only` *(Step 32-2a)* | `Filter_array_-_Product_Images_Only` |
+| `Compose - Reference Image URL` *(Step 32-2b)* | `Compose_-_Reference_Image_URL` |
+| `Check - Has Reference Image` *(Condition, Step 32-2c)* | `Check_-_Has_Reference_Image` |
+| `HTTP - Download Reference Image` *(Step 32-2d)* | `HTTP_-_Download_Reference_Image` |
+| `HTTP - Gemini Lifestyle 1` *(Step 32-2e)* | `HTTP_-_Gemini_Lifestyle_1` |
+| `Increment - Google API Calls` *(Step 32-3b)* | `Increment_-_Google_API_Calls` |
+| `Parse JSON - Gemini Lifestyle 1` *(Step 32-2f)* | `Parse_JSON_-_Gemini_Lifestyle_1` |
+| `Compose - Gemini Debug` *(Step 32-2g diagnostic — remove before prod)* | `Compose_-_Gemini_Debug` |
+| `OneDrive - Save Lifestyle Image 1` *(Step 32-2g, Y14-fixed)* | `OneDrive_-_Save_Lifestyle_Image_1` |
 
 **⚠️ Historical note:** `Init - Image Counter` used to live after Save CSV. In Step 27c it was moved to the top-level Variables block because Power Automate does not allow Initialize Variable inside a Condition. Internal name `Init_-_Image_Counter` is unchanged by the move.
 
@@ -1708,31 +1718,46 @@ Placed directly BEFORE `Compose - Extraction Metadata`. Builds the unified objec
   "ai_builder_credits": @{variables('ai_builder_credits_total')},
   "firecrawl_credits": @{variables('firecrawl_credits_total')},
   "serper_searches": @{variables('serper_searches_total')},
+  "google_api_calls": @{variables('google_api_calls_total')},
   "estimated_ai_builder_usd": @{mul(variables('ai_builder_credits_total'), 0.001)},
   "estimated_firecrawl_usd": @{mul(variables('firecrawl_credits_total'), 0.003)},
   "estimated_serper_usd": @{mul(variables('serper_searches_total'), 0.0003)},
-  "estimated_total_usd": @{add(add(mul(variables('ai_builder_credits_total'), 0.001), mul(variables('firecrawl_credits_total'), 0.003)), mul(variables('serper_searches_total'), 0.0003))},
+  "estimated_google_usd": @{mul(variables('google_api_calls_total'), 0.045)},
+  "estimated_total_usd": @{add(add(add(mul(variables('ai_builder_credits_total'), 0.001), mul(variables('firecrawl_credits_total'), 0.003)), mul(variables('serper_searches_total'), 0.0003)), mul(variables('google_api_calls_total'), 0.045))},
   "run_duration_seconds": @{div(sub(ticks(utcNow()), ticks(variables('run_timestamp'))), 10000000)},
   "run_start_iso": "@{variables('run_timestamp')}",
   "run_end_iso": "@{utcNow()}",
   "image_agent_fired": @{if(less(length(coalesce(body('Parse_JSON_-_Extraction_Output')?['images'], createArray())), 2), true, false)},
-  "conversion_rates_disclaimer": "Estimated USD based on approximate rates: AI Builder $0.001/credit, Firecrawl $0.003/credit, Serper $0.0003/search. Actual costs depend on your specific plans."
+  "lifestyle_generated": @{greater(variables('google_api_calls_total'), 0)},
+  "conversion_rates_disclaimer": "Estimated USD based on approximate rates: AI Builder $0.001/credit, Firecrawl $0.003/credit, Serper $0.0003/search, Google Gemini Nano Banana 2 $0.045/call. Actual costs depend on your specific plans."
 }
 ```
 
-### Conversion rates (verified Apr 18, 2026)
+**Step 32-3c additions (vs. original Step 28 block):**
+- `google_api_calls` — raw call count from `google_api_calls_total` variable
+- `estimated_google_usd` — calls × $0.045
+- `estimated_total_usd` — now triple-nested `add(add(add(...)))` summing 4 services instead of 3
+- `lifestyle_generated` — boolean (`true` when ≥1 Gemini call fired) used by HTML template + email body to conditionally render the lifestyle section
+- Disclaimer string — now lists Google's $0.045/call rate alongside the other 3
+
+### Conversion rates (verified Apr 18–19, 2026)
 
 | Service | Rate | Source |
 |---|---|---|
 | AI Builder credits | $0.001/credit | Microsoft licensing ballpark (varies by plan) |
 | Firecrawl credits | $0.003/credit | Verified Firecrawl 2026 Standard plan pricing (100K credits/$83/mo) |
 | Serper searches | $0.0003/search | Verified serper.dev 2026 base pricing ($0.30/1000 queries) |
+| Google Gemini Nano Banana 2 calls | $0.045/call | AI Studio API pricing for `gemini-3.1-flash-image-preview` image-out (per-image; text tokens rounding error at our volume) |
 
 **Hardcoded in the Compose expression.** To update rates: edit the Compose action inputs directly. Could be promoted to environment variables if they change frequently.
 
 ### HTML template changes (compose_template_v4.html)
 
-**Data injection:** New `<script type="text/plain" id="cost-data-b64">` tag paired with existing flat-data and extraction-data. Points to `@{base64(string(outputs('Compose_-_Cost_Metadata')))}`.
+**Data injection:** Four `<script type="text/plain">` payload tags near the top of `<body>`:
+- `id="flat-data-b64"` → `@{base64(string(body('Parse_JSON_-_Flat_Row')))}`
+- `id="extraction-data-b64"` → `@{base64(outputs('Compose_-_Extraction_Metadata'))}`
+- `id="cost-data-b64"` → `@{base64(string(outputs('Compose_-_Cost_Metadata')))}`
+- `id="lifestyle-image-b64"` *(Step 32-4)* → `@{coalesce(body('Parse_JSON_-_Gemini_Lifestyle_1')?['candidates']?[0]?['content']?['parts']?[0]?['inlineData']?['data'], body('Parse_JSON_-_Gemini_Lifestyle_1')?['candidates']?[0]?['content']?['parts']?[1]?['inlineData']?['data'], '')}` — carries the raw base64 image bytes straight through; outer coalesce to `''` so FALSE-branch runs inject empty string without erroring. Payload referenced from JS as `document.getElementById('lifestyle-image-b64').textContent.replace(/\s/g, '')` (same whitespace-strip pattern as the other payloads, since PA may split long base64 with newlines).
 
 **Banner restructured:** Removed the right-side confidence-only display. Banner now product identity only.
 
@@ -1741,17 +1766,20 @@ Placed directly BEFORE `Compose - Extraction Metadata`. Builds the unified objec
 2. **Run Duration** (formatted as Ns or Nm Ns) + start timestamp subtitle
 3. **Cost to Execute** (estimated USD, accent colored) + image-agent-fired subtitle
 
-**Cost Breakdown section** added before footer (CSS `.cost-breakdown`). Three itemized cards:
+**Cost Breakdown section** (CSS `.cost-breakdown`) — 4 cards (grid flipped from `repeat(3, 1fr)` to `repeat(4, 1fr)` in Step 32-3d). Order:
 - AI Builder: credits + estimated USD
 - Firecrawl: credits + estimated USD
 - Serper Search: count + estimated USD
-- Disclaimer strip below ("Estimated USD based on approximate rates...")
+- **Google Gemini** *(Step 32-3d)*: calls + estimated USD (`${fmtNum(cost.google_api_calls)} call${cost.google_api_calls === 1 ? '' : 's'}` · `${fmtUSD(cost.estimated_google_usd)}`)
+- Disclaimer strip below
 
-**Footer expanded:** Added Run Start / Run End / all 3 credit totals / image_agent status / fields extracted / overall confidence / total cost (accent-colored).
+**Generated Lifestyle Images section** *(Step 32-4)* — rendered AFTER the main Image Gallery section. Guarded by `if (cost.lifestyle_generated === true && lifestyleImgB64)` so FALSE-branch / Gemini-failure runs skip it silently. Single `.img-card` with inline `<img src="data:image/png;base64,${lifestyleImgB64}">` rendering the Gemini PNG self-contained in the HTML. Subtitle disclaimer below ("Generated by Google Gemini Nano Banana 2..."). Reuses existing `.gallery` / `.img-card` / `.img-wrap` / `.img-meta` / `.img-type` / `.cost-disclaimer` classes — no new CSS.
 
-**Mobile media query updated:** KPI strip + cost breakdown collapse to single column under 720px.
+**Footer expanded:** Added Run Start / Run End / all 4 credit totals (including new `Google API Calls` row from Step 32-3d) / `image_agent_fired` status / **`Lifestyle Image: generated` or `not generated`** *(Step 32-3d)* / fields extracted / overall confidence / total cost (accent-colored).
 
-### Validated run (Intermatic DT200LT)
+**Mobile media query updated:** KPI strip + cost breakdown collapse to single column under 720px. Cost breakdown was `.cost-breakdown { grid-template-columns: 1fr; }` under 720px since Step 28; no change needed for the 4th card because mobile already collapses to 1 column.
+
+### Validated run (Intermatic DT200LT — pre-Step 32)
 
 - AI Builder credits: 456
 - Firecrawl credits: 1
@@ -1762,19 +1790,32 @@ Placed directly BEFORE `Compose - Extraction Metadata`. Builds the unified objec
 - **Total estimated: $0.46**
 - Image agent: `not needed` (FALSE branch, text extraction found ≥2 images)
 
+### Validated run (Intermatic DT200LT — post-Step 32 end-to-end, Apr 19)
+
+- AI Builder credits: ~456 (unchanged)
+- Firecrawl credits: 1 (unchanged)
+- Serper searches: 1
+- **Google API calls: 1** ($0.045)
+- Image agent: `not needed` (FALSE — Intermatic native images)
+- **Lifestyle generated:** `true` — PNG saved to `/lifestyle/DT200LT_lifestyle_1.png`, 1.5MB base64-embedded in HTML
+- **Total estimated: ~$0.50**
+- HTML preview: 4-card Cost Breakdown renders Google Gemini card, "Generated Lifestyle Images" section renders inline, footer shows `Google API Calls: 1` + `Lifestyle Image: generated`
+
 ### Expected Brilliance run (TRUE branch, image agent fires)
 
 With GPT-5 currently on image prompt (Y12 — should be flipped to GPT-4.1):
 - AI Builder: ~2,500 credits ($2.50) — Extract Product Images alone is ~2,052
 - Firecrawl: 2 credits ($0.006) — primary + image scrape
 - Serper: 1 search (<$0.01)
-- **Total estimated: ~$2.51**
+- Google: 1 call ($0.045) post-Step 32
+- **Total estimated: ~$2.55**
 
-After Y12 fix (GPT-4.1 on image prompt):
+After Y12 fix (GPT-4.1 on image prompt, applied Apr 19):
 - AI Builder: ~850 credits ($0.85)
 - Firecrawl: 2 credits ($0.006)
 - Serper: 1 search (<$0.01)
-- **Total estimated: ~$0.86**
+- Google: 1 call ($0.045)
+- **Total estimated: ~$0.91**
 
 ---
 
@@ -2067,9 +2108,9 @@ If you later want separate sheets (Main, Specifications, Images, Documents) inst
 
 ---
 
-## Z. Step 32 — Gemini Nano Banana 2 lifestyle image generation *(32-2 COMPLETE Apr 19; 32-3/4/5 PENDING)*
+## Z. Step 32 — Gemini Nano Banana 2 lifestyle image generation *(ALL SUB-STEPS COMPLETE Apr 19)*
 
-**Status:** Actions 32-2a through 32-2g all built, saved, and validated end-to-end on Brilliance run Apr 19. PNG saved to OneDrive. Y14 resolved via coalesce expression. Resume build at 32-3 (cost tracker wiring).
+**Status:** Fully complete and validated end-to-end on both Brilliance (32-2 Apr 19) and Intermatic (32-5 Apr 19). All sub-steps 32-1 through 32-5 done. `Compose - Gemini Debug` retained — slated for removal before production.
 
 **Model:** `gemini-3.1-flash-image-preview` (Nano Banana 2, Google's latest image model as of Feb 26, 2026). Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent`. Auth via `?key=API_KEY` query string. No Vertex AI / GCP project required — AI Studio API key works.
 
@@ -2084,20 +2125,24 @@ Actions placed AFTER the existing `Loop - Download Images` completes. Lifestyle 
 ```
 ...existing actions through Loop - Download Images complete...
     ↓
-Z-1. Filter array - Product Images Only       (new)
-Z-2. Compose - Reference Image URL            (new)
-Z-3. Check - Has Reference Image (Condition)  (new)
+Z-1. Filter array - Product Images Only       (Step 32-2a)
+Z-2. Compose - Reference Image URL            (Step 32-2b)
+Z-3. Check - Has Reference Image (Condition)  (Step 32-2c)
     ├── TRUE:
-    │   Z-4. HTTP - Download Reference Image    (new)
-    │   Z-5. HTTP - Gemini Lifestyle 1          (new)
-    │   Z-6. Parse JSON - Gemini Lifestyle 1    (new)
-    │   Z-6b. Compose - Gemini Debug            (new — diagnostic, remove before prod)
-    │   Z-7. OneDrive - Save Lifestyle Image 1  (new, Y14-fixed)
-    │   [future: Compose - Lifestyle Metadata for HTML preview — Step 32-3+]
+    │   Z-4.  HTTP - Download Reference Image   (Step 32-2d)
+    │   Z-5.  HTTP - Gemini Lifestyle 1         (Step 32-2e)
+    │   Z-5b. Increment - Google API Calls      (Step 32-3b — +1 to google_api_calls_total)
+    │   Z-6.  Parse JSON - Gemini Lifestyle 1   (Step 32-2f)
+    │   Z-6b. Compose - Gemini Debug            (Step 32-2g diagnostic — remove before prod)
+    │   Z-7.  OneDrive - Save Lifestyle Image 1 (Step 32-2g, Y14-fixed coalesce)
     └── FALSE:
         (empty; no lifestyle generation if no product-type reference available)
     ↓
-...existing Compose - Cost Metadata / HTML preview / email send...
+Compose - Cost Metadata                         (Step 28, updated Step 32-3c — 4 services incl. Google, lifestyle_generated boolean)
+Compose - Extraction Metadata
+Compose - HTML Preview                          (template v4, Steps 32-3d + 32-4 — Google Gemini card, Generated Lifestyle Images section w/ inline base64 PNG, footer rows)
+OneDrive - Save HTML Preview
+Send Email - Reply with HTML
 ```
 
 ### Z-1. `Filter array - Product Images Only`
@@ -2233,6 +2278,21 @@ Z-3. Check - Has Reference Image (Condition)  (new)
 - `generationConfig.responseModalities: ["TEXT", "IMAGE"]` is REQUIRED for Gemini to return an image. Without it, you get only text.
 - **Y13 gotcha:** The initial build attempted `body('HTTP_-_Download_Reference_Image')$content` — PA validator rejects `$content`. Fix: `base64(body(...))` as shown.
 
+### Z-5b. `Increment - Google API Calls` *(Step 32-3b)*
+
+**Action type:** Variable → Increment variable
+
+**Position:** Immediately after Z-5 (`HTTP - Gemini Lifestyle 1`), before Z-6 (`Parse JSON - Gemini Lifestyle 1`). Inside the TRUE branch of `Check - Has Reference Image`. Matches the Step 28 convention of placing Increments directly after the service call they track so the counter reflects actual API spend regardless of whether downstream parsing fails.
+
+**Configuration:**
+
+| Field | Value |
+|---|---|
+| **Name (Dynamic content dropdown)** | `google_api_calls_total` |
+| **Value (Plain text — integer)** | `1` |
+
+**Why a raw call count (not a credit/token sum like the other Increments):** Gemini's `generateContent` response body does NOT include a cost or token field. We instead count calls and multiply by the flat per-image rate ($0.045) in `Compose - Cost Metadata` → `estimated_google_usd = mul(google_api_calls_total, 0.045)`.
+
 ### Z-6. `Parse JSON - Gemini Lifestyle 1`
 
 **Action type:** Data Operations → Parse JSON
@@ -2350,26 +2410,70 @@ Z-3. Check - Has Reference Image (Condition)  (new)
 
 See Y14 for full diagnostic history.
 
-### Remaining Step 32 sub-steps (not yet built)
+### Step 32-3 cost tracker wiring *(COMPLETE Apr 19)*
 
-- **32-3: Cost tracker wiring** — new top-level variable `google_api_calls_total` (Integer, init 0). New `Increment - Google API Calls` action after Z-5 HTTP. Add `google_api_calls` and `estimated_google_usd` (`mul(variables('google_api_calls_total'), 0.045)`) to `Compose - Cost Metadata`. Update `estimated_total_usd` to include Google. Update HTML preview Cost Breakdown section to show Google API as 4th line.
-- **32-4: HTML preview new section** — add "Generated Lifestyle Images" section to `compose_template_v4.html`, positioned after the existing "Image Gallery" section. Reads from new `lifestyle_images` field in extraction metadata payload. Needs new `Compose - Lifestyle Metadata` action that collects generated filenames, prompt text, generation timestamp, Gemini model ID. Kept SEPARATE from the `images` flat_row output per Tony's "not in CSV yet" decision.
-- **32-5: End-to-end validation** — rerun Brilliance and Intermatic after Y14 unblock. Confirm `/lifestyle/` folder appears with PNG, HTML preview renders the new section, cost tracker shows Google line, email body KPI reflects lifestyle generation success.
+- ✅ **32-3a** `Init - Google API Calls Total` — new top-level Initialize Variable (Integer, `google_api_calls_total`, value 0). Position: right after `Init - Serper Searches Total`. Must remain at top level per Y9 (no nested Initialize Variable).
+- ✅ **32-3b** `Increment - Google API Calls` — see Z-5b above for full config.
+- ✅ **32-3c** `Compose - Cost Metadata` extended. See Section V3 "Compose - Cost Metadata" block for the full updated inputs JSON. Adds `google_api_calls`, `estimated_google_usd`, `lifestyle_generated` boolean; updates `estimated_total_usd` to triple-nested `add(add(add(...)))` summing all 4 services; extends disclaimer.
+- ✅ **32-3d** `compose_template_v4.html` Cost Breakdown + footer extended. See Section V3 "HTML template changes" block for exact edits: grid flipped to 4 columns, new Google Gemini card, footer `Google API Calls` + `Lifestyle Image` rows.
+
+### Step 32-4 HTML preview "Generated Lifestyle Images" section *(COMPLETE Apr 19)*
+
+Built in `compose_template_v4.html` without any new actions in the flow — the template just reads directly from `Parse_JSON_-_Gemini_Lifestyle_1` via a new base64 payload tag. No `Compose - Lifestyle Metadata` action needed (original plan dropped in favor of simpler direct-reference approach).
+
+**New payload tag** (added near existing `<script id="cost-data-b64">`):
+```html
+<script type="text/plain" id="lifestyle-image-b64">@{coalesce(body('Parse_JSON_-_Gemini_Lifestyle_1')?['candidates']?[0]?['content']?['parts']?[0]?['inlineData']?['data'], body('Parse_JSON_-_Gemini_Lifestyle_1')?['candidates']?[0]?['content']?['parts']?[1]?['inlineData']?['data'], '')}</script>
+```
+
+**Outer `coalesce(..., '')`** — critical. When `Check - Has Reference Image` goes FALSE, `Parse_JSON_-_Gemini_Lifestyle_1` is skipped and its body returns null. The outer coalesce falls through to `''`, injecting an empty string into the script tag rather than the literal word `null`. The JS check `if (cost.lifestyle_generated === true && lifestyleImgB64)` then correctly skips rendering the section.
+
+**JS addition** (after the existing cost-B64 parsing):
+```js
+const lifestyleImgB64 = document.getElementById('lifestyle-image-b64').textContent.replace(/\s/g, '');
+```
+
+**Rendering block** (inserted immediately AFTER the existing Image Gallery section):
+```js
+if (cost.lifestyle_generated === true && lifestyleImgB64) {
+  html += `<section>
+    <div class="section-header"><h2>Generated Lifestyle Images</h2><span class="count">AI-generated</span></div>
+    <div class="gallery">
+      <div class="img-card">
+        <div class="img-wrap"><img src="data:image/png;base64,${lifestyleImgB64}" alt="Generated lifestyle image" loading="lazy"></div>
+        <div class="img-meta"><span class="img-type">lifestyle · AI</span> · 01</div>
+      </div>
+    </div>
+    <div class="cost-disclaimer" style="margin-top:12px;">Generated by Google Gemini Nano Banana 2 (gemini-3.1-flash-image-preview). Uses an extracted product image as a reference input; scene/context generated from prompt. Not a real photograph.</div>
+  </section>`;
+}
+```
+
+No new CSS — reuses `.gallery`, `.img-card`, `.img-wrap`, `.img-meta`, `.img-type`, `.cost-disclaimer` from Step 28/image-gallery work.
+
+**Attachment size tradeoff:** Inline base64 `<img>` inflates the HTML attachment from ~30KB to ~1.5MB per run. Self-contained deliverable — no OneDrive dependency when recipient opens the email attachment. Tony chose this over a OneDrive share-link approach Apr 19 for simplicity. At 50 items/day, email egress stays well within normal bounds.
+
+### Step 32-5 End-to-end validation *(COMPLETE Apr 19)*
+
+Ran the full pipeline on Intermatic DT200LT end-to-end after all Step 32-3/4 edits were applied. Verified:
+- Flow run completed green, all TRUE-branch lifestyle actions succeeded
+- PNG saved to `/Item Setup POC/Intermatic_DT200LT/<correlation_id>/lifestyle/DT200LT_lifestyle_1.png`
+- HTML preview saved alongside, opens cleanly in browser
+- Cost Breakdown shows all 4 cards (AI Builder, Firecrawl, Serper Search, Google Gemini at 1 call / $0.045)
+- Generated Lifestyle Images section renders inline with embedded PNG
+- Footer shows `Google API Calls: 1` and `Lifestyle Image: generated`
+- Total Cost (est.) rolled up to ~$0.50 including the Google line
+- Email reply delivered to sender with HTML attachment, lifestyle image renders correctly when opened
+
+No errors, no failed branches, no schema mismatches. Brilliance (32-2) and Intermatic (32-5) both validated. Step 32 closed.
+
+### Deferred cleanup
+
+- **Remove `Compose - Gemini Debug`** — no longer needed; response shape variance is handled at Z-7 via coalesce and at the HTML payload via outer coalesce. Leaving for now as diagnostic continuity; delete before production deployment.
 
 ### Internal action names (for expressions)
 
-Add these to Section U mapping when Step 32 is fully complete:
-
-| Display name | Internal name |
-|---|---|
-| `Filter array - Product Images Only` | `Filter_array_-_Product_Images_Only` |
-| `Compose - Reference Image URL` | `Compose_-_Reference_Image_URL` |
-| `Check - Has Reference Image` | `Check_-_Has_Reference_Image` |
-| `HTTP - Download Reference Image` | `HTTP_-_Download_Reference_Image` |
-| `HTTP - Gemini Lifestyle 1` | `HTTP_-_Gemini_Lifestyle_1` |
-| `Parse JSON - Gemini Lifestyle 1` | `Parse_JSON_-_Gemini_Lifestyle_1` |
-| `Compose - Gemini Debug` *(diagnostic, remove before prod)* | `Compose_-_Gemini_Debug` |
-| `OneDrive - Save Lifestyle Image 1` | `OneDrive_-_Save_Lifestyle_Image_1` (or `Create_file` if Tony didn't rename) |
+All Step 32 action names have been promoted to **Section U** (the canonical action-name → internal-name mapping) since Step 32 is fully complete. See Section U for the current table.
 
 ---
 

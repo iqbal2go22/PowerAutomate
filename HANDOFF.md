@@ -1,6 +1,6 @@
 # SiteOne Item Enrichment POC — Agent Handoff
 
-**Last updated:** Apr 19, 2026 — **STEP 32-3b COMPLETE.** `Increment - Google API Calls` action added immediately after `HTTP - Gemini Lifestyle 1` inside the TRUE branch of `Check - Has Reference Image`. Increments `google_api_calls_total` by 1 per Gemini call. Matches Step 28 convention (Increment sits directly after the service call it tracks). Previous: STEP 32-3a COMPLETE — new top-level variable `Init - Google API Calls Total` (Integer, init 0, var name `google_api_calls_total`) added alongside existing cost tracker variables. STEP 32-2 COMPLETE (end-to-end save working, Brilliance validated). Lifestyle image generation via Gemini Nano Banana 2 (gemini-3.1-flash-image-preview) fully functional end-to-end: Filter array → Compose ref URL → Condition → HTTP download → HTTP Gemini → Parse JSON → OneDrive save all working. Y14 RESOLVED: Gemini returns a single-element `parts` array (image at `[0]`, not `[1]` as originally assumed). Fix = `coalesce(parts[0].inlineData.data, parts[1].inlineData.data)` in base64ToBinary expression. `Compose - Gemini Debug` still in flow, slated for removal before production. Remaining Step 32 work: 32-3b Increment action, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost breakdown update, 32-4 HTML preview lifestyle section, 32-5 Intermatic validation. Y12 image model swap to GPT-4.1 done. Step 31 email body redesign shipped.
+**Last updated:** Apr 19, 2026 — **STEP 32 COMPLETE end-to-end on Intermatic.** Cost tracker (32-3a/b/c/d), HTML preview lifestyle rendering (32-4), and end-to-end validation (32-5) all done. Intermatic DT200LT run: Gemini Nano Banana 2 generated one lifestyle PNG to `/Item Setup POC/Intermatic_DT200LT/<corr_id>/lifestyle/`, HTML preview renders the Generated Lifestyle Images section inline (base64-embedded), 4-card Cost Breakdown shows Google Gemini at ~$0.045, footer reports `Lifestyle Image: generated`, total run cost ~$0.50. `Compose - Gemini Debug` still in flow, slated for removal before production. Previous milestones intact: 32-2 Brilliance validation, Y14 coalesce fix, Y12 GPT-4.1 swap, Step 31 email body redesign. Next priorities: remove Gemini Debug Compose, #45 multi-item email, #46 attachment parsing, backlog hardening. (end-to-end save working, Brilliance validated). Lifestyle image generation via Gemini Nano Banana 2 (gemini-3.1-flash-image-preview) fully functional end-to-end: Filter array → Compose ref URL → Condition → HTTP download → HTTP Gemini → Parse JSON → OneDrive save all working. Y14 RESOLVED: Gemini returns a single-element `parts` array (image at `[0]`, not `[1]` as originally assumed). Fix = `coalesce(parts[0].inlineData.data, parts[1].inlineData.data)` in base64ToBinary expression. `Compose - Gemini Debug` still in flow, slated for removal before production. Remaining Step 32 work: 32-3b Increment action, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost breakdown update, 32-4 HTML preview lifestyle section, 32-5 Intermatic validation. Y12 image model swap to GPT-4.1 done. Step 31 email body redesign shipped.
 **User:** Tony — Governance & Data Quality, SiteOne Landscape Supply
 
 ---
@@ -133,11 +133,22 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
             44a. Increment - Image Counter
             44b. HTTP - Download Image
             44c. OneDrive - Save Image
-        45. Compose - Cost Metadata (Step 28)
-        46. Compose - Extraction Metadata
-        47. Compose - HTML Preview (template v4 with 3-KPI banner)
-        48. OneDrive - Save HTML Preview
-        49. Send Email - Reply with HTML  ← NEW Step 30-6
+        45. Filter array - Product Images Only  ← NEW Step 32-2a
+        46. Compose - Reference Image URL  ← NEW Step 32-2b
+        47. Check - Has Reference Image (Condition, Step 32-2c)
+            ├── TRUE (at least one type=product image exists):
+            │   47a. HTTP - Download Reference Image (Step 32-2d)
+            │   47b. HTTP - Gemini Lifestyle 1 (Step 32-2e — gemini-3.1-flash-image-preview, Nano Banana 2)
+            │   47c. Increment - Google API Calls (Step 32-3b)
+            │   47d. Parse JSON - Gemini Lifestyle 1 (Step 32-2f)
+            │   47e. Compose - Gemini Debug (diagnostic, remove before prod — Y14)
+            │   47f. OneDrive - Save Lifestyle Image 1 (Step 32-2g, coalesce parts[0]/parts[1])
+            └── FALSE (no product-type image): empty
+        48. Compose - Cost Metadata (Step 28, updated Step 32-3c — now 4 services incl. Google)
+        49. Compose - Extraction Metadata
+        50. Compose - HTML Preview (template v4, updated Steps 32-3d + 32-4 — Google Gemini card, Generated Lifestyle Images section, footer rows)
+        51. OneDrive - Save HTML Preview
+        52. Send Email - Reply with HTML  ← NEW Step 30-6
 ```
 
 **See RECOVERY.md for the exact expressions, schemas, prompts, and configuration of every action.**
@@ -180,7 +191,7 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
 - ❌ #25 — **Upgrade CSV output to true XLSX via Office Scripts** — Current POC uses CSV (opens in Excel, fine for POC). For production polish, build an Office Script in a blank workbook that accepts a JSON payload and writes dynamic columns/rows, then invoke via "Run script" action. **Full implementation guide now in RECOVERY.md Appendix X** — script code, flow actions, and common pitfalls documented.
 - ❌ #26 — **HTML preview generation** — Create an HTML template that renders extracted data as a product page preview. Save to OneDrive alongside CSV. Per Tony's requirement Apr 17.
 - ❌ #27 — **Image download + OneDrive storage** — HTTP GET each image URL from extraction → save to `<item_folder_path>/images/`. Needs Apply to each loop over `extracted_data.images` array. Per Tony's requirement Apr 17.
-- ❌ #28 — **Lifestyle image generation via Runware** — Use extracted product images as input to Runware img2img API → generate lifestyle/contextual images. Requires Runware API key + new HTTP action. Per Tony's requirement Apr 17.
+- ✅ #28 — **Lifestyle image generation (shipped via Google Gemini Nano Banana 2, NOT Runware)** — Step 32 complete Apr 19. Tony chose `gemini-3.1-flash-image-preview` over Runware because it's multimodal-native (understands the reference product semantically). Full build: filter product-type images → compose first reference URL → Condition → download reference → POST to Gemini generateContent → increment Google call counter → parse JSON → save PNG to `/lifestyle/` subfolder → embed in HTML preview via base64 data URI. 1 image per product (v1). Cost ~$0.045/call. Validated Brilliance + Intermatic end-to-end. See Section 8 decisions log for rationale.
 - ❌ #29 — **Email trigger replacement** — Swap manual trigger for Outlook "When a new email arrives" + AI Builder email parsing to extract brand/part#/product_name. Per Tony's requirement Apr 17.
 - ❌ #30 — **Migrate flow ownership to service account** — Currently runs under Tony's credentials (OneDrive, AI Builder, API keys all tied to Tony). For production/shared use, provision a SiteOne service account (e.g., `itemsetup@siteone.com`), make it flow owner, reauthenticate all connections as that account. Critical before scaling to team use. Needs IT involvement to provision account.
 - 🟡 #31 — **Complete image capture for JS-rendered / base64 galleries (IN PROGRESS — conditional image agent design locked Apr 18)** —
@@ -267,9 +278,9 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
 
 ---
 
-## 7. Current state (Apr 18, end of session)
+## 7. Current state (Apr 19, end of session)
 
-**POC is end-to-end functional.** Email-triggered, produces enriched HTML report with cost/confidence/duration KPIs, delivers back to sender as attachment. Validated Intermatic + Brilliance runs.
+**POC is end-to-end functional with lifestyle image generation.** Email-triggered, produces enriched HTML report with cost/confidence/duration KPIs + AI-generated lifestyle image, delivers back to sender as self-contained attachment. Validated Intermatic + Brilliance runs pre-Step 32; Intermatic re-validated end-to-end with lifestyle generation Apr 19.
 
 ### Build arc summary
 
@@ -285,33 +296,35 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
 | Step 30 (1-8) | **Email trigger** — new `Extract Enrichment Request from Email` prompt (GPT-4.1 mini), Outlook V3 trigger on filtered folder, Parse JSON, Validation Condition with rejection email + Terminate in False branch, Init - Brand/Part Number rewired to read from email extraction, final Send Email action with HTML attachment. | ✅ complete and VALIDATED end-to-end. |
 | Step 31 | **Reply email body visual redesign** — replaced plain-text bullets with visual KPI email body: green ✅ success banner + product identity, 3-KPI strip (Confidence with conditional green/amber/red by tier + tier label "Ready for PIM"/"Review recommended"/"Human review required", Duration with image-agent-fired subtitle, Est. Cost with accent styling), existing summary bullets preserved below banner. Email-safe HTML (tables, inline CSS, native emoji, no web fonts). | ✅ complete, validated Apr 19 ("worked perfectly"). |
 | Y12 | **Image agent prompt: GPT-5 → GPT-4.1** swap | ✅ done Apr 19 by Tony directly (one dropdown). Expected ~5x cost reduction on TRUE-branch runs. Not re-validated on Brilliance but no regression expected (task is parsing/classification not reasoning). |
-| Step 32 (in progress) | **Gemini Nano Banana 2 lifestyle image generation** — Built: `Filter array - Product Images Only` (filters merged images to type=product), `Compose - Reference Image URL` (first URL), `Check - Has Reference Image` Condition, TRUE branch: `HTTP - Download Reference Image` (GET source JPEG), `HTTP - Gemini Lifestyle 1` (POST to gemini-3.1-flash-image-preview:generateContent with prompt + base64 image), `Parse JSON - Gemini Lifestyle 1`, `Compose - Gemini Debug` (diagnostic, remove before prod), `OneDrive - Save Lifestyle Image 1` using coalesce parts[0]/parts[1] pattern. v1 scope: 1 lifestyle image per product. | ✅ 32-2 complete Apr 19 (Brilliance validated, PNG saved). Y14 resolved. Remaining: 32-3 cost tracker, 32-4 HTML preview section, 32-5 Intermatic validation. |
+| Step 32 (COMPLETE) | **Gemini Nano Banana 2 lifestyle image generation** — Filter array → Compose ref URL → Condition → HTTP download → HTTP Gemini → Increment Google API Calls → Parse JSON → Compose Debug → OneDrive save. Cost tracker 4th service added (`google_api_calls_total` var + Increment after Gemini + 4 new fields in Compose - Cost Metadata + Google Gemini card in HTML cost breakdown + footer rows). HTML preview "Generated Lifestyle Images" section embeds PNG inline via base64 data URI (self-contained for email attachment). v1 scope: 1 lifestyle image per product, prompt template static with brand + product_name placeholders. | ✅ complete Apr 19. Brilliance validated 32-2. Intermatic validated end-to-end 32-5 (all branches including cost breakdown + lifestyle section + footer). Y14 resolved via coalesce pattern. `Compose - Gemini Debug` retained — remove before production. |
 
 ### Validated scenarios
 
-- **Intermatic DT200LT** (manufacturer path): Text extraction finds 7 images natively → FALSE branch of image agent → cost ~$0.46/run, runs cleanly
+- **Intermatic DT200LT** (manufacturer path, pre-Step 32): Text extraction finds 7 images natively → FALSE branch of image agent → cost ~$0.46/run, runs cleanly
 - **Brilliance BRI-WIFI-SMART-SOCKET-3** (distributor fallback path via Sprinkler Supply Store): Text extraction returns 0 images (Shopify base64) → TRUE branch fires → image agent extracts 3 real product images @ 98% confidence → cost ~$2.50/run with GPT-5
-- **Email-triggered end-to-end:** Sent "Onboard Brilliance BRI-WIFI-SMART-SOCKET-3" → flow ran to completion → reply email with HTML attachment arrived
+- **Brilliance BRI-WIFI-SMART-SOCKET-3 post Step 32-2**: Lifestyle branch fired, Gemini Nano Banana 2 generated contextual outdoor scene, PNG saved to `/lifestyle/` subfolder at 98% confidence reference
+- **Intermatic DT200LT post Step 32-5 (Apr 19, end-to-end)**: Full pipeline clean. Text extraction, image download, lifestyle generation, HTML preview with 4-card Cost Breakdown + Generated Lifestyle Images section, footer showing `Google API Calls: 1` and `Lifestyle Image: generated`, email reply delivered with inline base64 PNG rendering correctly. Total cost est. ~$0.50 (Y12 GPT-4.1 image prompt)
+- **Email-triggered end-to-end:** Sent "Onboard Brilliance/Intermatic ..." → flow ran to completion → reply email with HTML attachment arrived, lifestyle image embedded
 
 ### Known issues that surfaced during validation
 
-1. **Y12 — Image prompt uses GPT-5 not GPT-4.1.** One-dropdown change in AI Builder, 5x cost reduction, minimal accuracy risk. Highest-ROI next task.
+1. **`Compose - Gemini Debug` still in flow.** Small cosmetic/cleanup item — the 5-signal diagnostic Compose inserted during Y14 troubleshooting sits between Parse JSON and OneDrive save in the lifestyle branch. Zero functional cost but clutter; remove before production.
 2. **Y4 — Serper non-determinism.** Same product can route to different distributors run-to-run. This is production-correct (flow adapts) but makes Brilliance-type testing inconsistent.
 3. **#47 — Main flow actions are BELOW the `Check - Valid Email Extraction` Condition, not inside its TRUE branch.** Works functionally because the FALSE branch Terminates the flow, but architecturally messy. LOW priority cleanup.
 4. **#44 state management minimum fix only** — future hardening (atomic writes, cleanup on failure, OneDrive subfolder accumulation policy) is backlogged.
+5. **HTML attachment size ~1.5MB** — base64-embedded lifestyle image inflates the HTML attachment from ~30KB to ~1.5MB per run. Fine for 50/day scale; optimization candidate is OneDrive share-link approach (discussed Apr 19, deferred — Tony chose base64 for self-contained simplicity).
 
 ### Next priorities (Tony's call — pick order)
 
-1. **Resume Step 32 build** — 32-3 cost tracker wiring (new `google_api_calls_total` var + Increment + Compose - Cost Metadata update) → 32-4 HTML preview section for lifestyle images → 32-5 Intermatic validation → remove `Compose - Gemini Debug` before prod.
-2. ~~Y12 model swap~~ ✅ DONE by Tony directly
-3. ~~Step 32 save unblock~~ ✅ DONE Apr 19 (Y14 resolved via coalesce expression)
-4. **#45 multi-item email handling** (production-critical for real rollout)
-5. **#46 email attachment parsing** (PDF datasheets → brand/part# extraction)
-6. **Backlog hardening** — Scope blocks, env variables for API keys, retry policies, SharePoint logging
-7. **Stage 5 catalog grounding** — Dataverse lookup of similar SiteOne items (never started)
-8. **Stage 7 validation gate** — LLM-critic second pass on extraction output (never started)
+1. **Remove `Compose - Gemini Debug`** — small cleanup of the 5-signal diagnostic Compose inserted during Y14. Optional; it costs nothing but clutters the lifestyle branch. 2 minutes.
+2. **#45 multi-item email handling** (production-critical for real rollout — users will send "Onboard A, B, and C" emails)
+3. **#46 email attachment parsing** (PDF datasheets → brand/part# extraction — many vendor workflows attach specs)
+4. **Backlog hardening** — Scope blocks, env variables for API keys (#5 tech debt now spans Serper + Firecrawl + Google), retry policies, SharePoint logging (#8)
+5. **Stage 5 catalog grounding** — Dataverse lookup of similar SiteOne items (never started)
+6. **Stage 7 validation gate** — LLM-critic second pass on extraction output (never started)
+7. **Backlog #30 service-account migration** — current flow runs under Tony's credentials; production deployment needs a shared service account.
 
-### Step 32 sub-step checklist (RESUME HERE)
+### Step 32 sub-step checklist (ALL COMPLETE ✅)
 
 - ✅ 32-1 Prompt template locked (static with {brand} + {product_name} placeholders, explicit "preserve product appearance" anchor, excludes humans/watermarks/text)
 - ✅ 32-2a `Filter array - Product Images Only` (after `Loop - Download Images`)
@@ -321,14 +334,13 @@ Build a Power Automate workflow that takes an incoming "new item setup" email (b
 - ✅ 32-2e `HTTP - Gemini Lifestyle 1` (POST to gemini-3.1-flash-image-preview, PT120S, retry None, secure inputs ON) — initial `$content` expression error fixed by switching to `base64(body(...))`
 - ✅ 32-2f `Parse JSON - Gemini Lifestyle 1` (hardened schema, additionalProperties: true everywhere)
 - ✅ 32-2g `OneDrive - Save Lifestyle Image 1` — WORKING after Y14 fix (coalesce parts[0]/parts[1] pattern). Validated on Brilliance Apr 19 — PNG saved successfully.
-- 🟡 **Diagnostic Compose still in place** — `Compose - Gemini Debug` sits between Parse JSON and OneDrive save. Useful if we hit another response-shape variant. Remove before production.
-- 🟡 32-3 Cost tracker wiring (in progress):
-  - ✅ 32-3a `Init - Google API Calls Total` top-level variable added (Integer, `google_api_calls_total`, value 0)
-  - ✅ 32-3b `Increment - Google API Calls` action placed immediately after `HTTP - Gemini Lifestyle 1` inside TRUE branch of `Check - Has Reference Image`; increments `google_api_calls_total` by 1
-  - ❌ 32-3c Add `google_api_calls` + `estimated_google_usd` + rolled-up `estimated_total_usd` to `Compose - Cost Metadata`
-  - ❌ 32-3d Update compose_template_v4.html Cost Breakdown section + footer to show Google API as 4th cost line
-- ❌ 32-4 HTML preview section "Generated Lifestyle Images" in compose_template_v4.html (separate section per Tony's choice, not in CSV)
-- ❌ 32-5 End-to-end validation on Intermatic run (Brilliance validated Apr 19; Intermatic still pending)
+- ✅ 32-3a `Init - Google API Calls Total` top-level variable (Integer, `google_api_calls_total`, value 0)
+- ✅ 32-3b `Increment - Google API Calls` action placed immediately after `HTTP - Gemini Lifestyle 1` inside TRUE branch of `Check - Has Reference Image`; increments `google_api_calls_total` by 1
+- ✅ 32-3c `Compose - Cost Metadata` extended with 4 new fields: `google_api_calls`, `estimated_google_usd` (calls × $0.045), `lifestyle_generated` boolean, and `estimated_total_usd` rolled up to include the Google term
+- ✅ 32-3d `compose_template_v4.html` updated: 4th `.cost-breakdown` card for Google Gemini (grid flipped from 3 to 4 columns), footer rows `Google API Calls` + `Lifestyle Image` added after the existing Serper/Image Agent rows
+- ✅ 32-4 "Generated Lifestyle Images" HTML preview section added after the main Image Gallery. Inline base64 `<img src="data:image/png;base64,...">` rendering via new `<script id="lifestyle-image-b64">` payload tag that reads the Gemini response with the same coalesce parts[0]/parts[1] pattern as the OneDrive save (outer coalesce to `''` so FALSE-branch runs inject empty string rather than erroring). Section gated by `cost.lifestyle_generated === true && lifestyleImgB64`. Reuses existing `.gallery`/`.img-card`/`.img-wrap` CSS — no new classes.
+- ✅ 32-5 End-to-end validation on Intermatic DT200LT — all checks passed Apr 19: PNG saved, HTML preview renders lifestyle section, cost breakdown shows 4th card, footer has new rows, email reply delivered with embedded image.
+- 🟡 **`Compose - Gemini Debug` retained** — remove before production (backlog cleanup).
 
 ---
 
