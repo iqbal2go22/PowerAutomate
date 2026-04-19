@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Enrichment Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --surface-muted: #f5f5f4;
+    --border: #e7e5e4;
+    --border-strong: #d6d3d1;
+    --text: #1c1917;
+    --text-secondary: #44403c;
+    --text-muted: #78716c;
+    --accent: #0f766e;
+    --accent-bg: #f0fdfa;
+    --conf-high: #059669;
+    --conf-high-bg: #ecfdf5;
+    --conf-mid: #b45309;
+    --conf-mid-bg: #fffbeb;
+    --conf-low: #b91c1c;
+    --conf-low-bg: #fef2f2;
+    --warning: #b45309;
+    --warning-bg: #fef3c7;
+    --info: #0369a1;
+    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Monaco, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1040px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  /* Header banner */
+  .banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+  }
+  .banner-meta { font-family: var(--mono); font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+  .banner h1 { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; margin-bottom: 4px; }
+  .banner-sub { font-family: var(--mono); font-size: 13px; color: var(--text-secondary); }
+  .banner-sub .part { color: var(--text); font-weight: 500; }
+  .banner-right { text-align: right; }
+  .confidence-headline { display: inline-flex; align-items: baseline; gap: 6px; font-family: var(--mono); }
+  .confidence-headline .num { font-size: 28px; font-weight: 600; color: var(--conf-high); line-height: 1; }
+  .confidence-headline .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* Three-KPI strip */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .kpi {
+    background: var(--surface);
+    padding: 20px 24px;
+    text-align: center;
+  }
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-value .suffix { font-size: 16px; font-weight: 500; opacity: 0.7; }
+  .kpi-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .kpi-confidence .kpi-value { color: var(--conf-high); }
+  .kpi-confidence.mid .kpi-value { color: var(--conf-mid); }
+  .kpi-confidence.low .kpi-value { color: var(--conf-low); }
+  .kpi-duration .kpi-value { color: var(--text); }
+  .kpi-cost .kpi-value { color: var(--accent); }
+
+  /* Cost breakdown section */
+  .cost-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 12px; }
+  .cost-breakdown .cost-item {
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 14px;
+  }
+  .cost-breakdown .cost-service {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .cost-breakdown .cost-value {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .cost-breakdown .cost-usd {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+  .cost-disclaimer {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  /* Section */
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 24px 28px; margin-bottom: 16px; }
+  .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .section-header h2 { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; }
+  .section-header .count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+  /* Metadata strip */
+  .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .meta-item .label { font-family: var(--mono); font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .meta-item .value { font-family: var(--mono); font-size: 13px; color: var(--text); word-break: break-all; }
+  .meta-item .value a { color: var(--info); text-decoration: none; }
+  .meta-item .value a:hover { text-decoration: underline; }
+
+  /* Confidence badge */
+  .conf { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; letter-spacing: 0.02em; }
+  .conf-high { background: var(--conf-high-bg); color: var(--conf-high); }
+  .conf-mid { background: var(--conf-mid-bg); color: var(--conf-mid); }
+  .conf-low { background: var(--conf-low-bg); color: var(--conf-low); }
+
+  /* Warning pill for missing critical fields */
+  .missing-pill { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; background: var(--warning-bg); color: var(--warning); font-weight: 500; }
+
+  /* Content comparison (Extracted vs Generated) */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare-col .col-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .compare-col .col-label { font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .compare-col .col-tag { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; }
+  .col-tag-source { background: var(--surface-muted); color: var(--text-secondary); }
+  .col-tag-generated { background: var(--accent-bg); color: var(--accent); }
+  .content-block { background: var(--surface-muted); border: 1px solid var(--border); border-radius: 3px; padding: 12px 14px; font-size: 13px; line-height: 1.6; color: var(--text-secondary); white-space: pre-wrap; }
+
+  /* Feature bullets / keywords */
+  .bullet-list { list-style: none; padding: 0; }
+  .bullet-list li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); display: flex; align-items: start; gap: 10px; }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list .bullet-num { font-family: var(--mono); font-size: 10px; color: var(--text-muted); min-width: 24px; padding-top: 2px; }
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-family: var(--mono); font-size: 11px; padding: 3px 8px; background: var(--surface-muted); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 3px; }
+
+  /* Spec table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .spec-table th { text-align: left; font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 12px; border-bottom: 1px solid var(--border-strong); }
+  .spec-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table td:first-child { color: var(--text-secondary); width: 40%; font-weight: 500; }
+  .spec-table td:last-child { color: var(--text); font-family: var(--mono); font-size: 12px; }
+  .spec-table tr:hover { background: var(--surface-muted); }
+
+  /* Image gallery */
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .img-card { border: 1px solid var(--border); border-radius: 3px; overflow: hidden; background: var(--surface-muted); }
+  .img-card .img-wrap { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; }
+  .img-card img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .img-card .img-meta { padding: 8px 10px; font-family: var(--mono); font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; border-top: 1px solid var(--border); background: var(--surface); }
+  .img-card .img-meta .img-type { color: var(--accent); font-weight: 600; }
+
+  /* Documents list */
+  .doc-list { display: flex; flex-direction: column; gap: 8px; }
+  .doc-item { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 10px 14px; background: var(--surface-muted); border: 1px solid var(--border); border-radius: 3px; text-decoration: none; color: inherit; transition: background 0.15s; }
+  .doc-item:hover { background: var(--accent-bg); border-color: var(--accent); }
+  .doc-icon { font-family: var(--mono); font-size: 10px; font-weight: 600; padding: 3px 7px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 3px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+  .doc-title { font-size: 13px; color: var(--text); font-weight: 500; }
+  .doc-type { font-family: var(--mono); font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+  .doc-arrow { font-family: var(--mono); font-size: 16px; color: var(--text-muted); }
+
+  /* Video cards */
+  .video-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .video-card { background: var(--surface-muted); border: 1px solid var(--border); border-radius: 3px; overflow: hidden; text-decoration: none; color: inherit; transition: background 0.15s; }
+  .video-card:hover { background: var(--accent-bg); border-color: var(--accent); }
+  .video-thumb { aspect-ratio: 16 / 9; background: #1c1917; position: relative; display: flex; align-items: center; justify-content: center; color: #fafaf9; font-size: 32px; }
+  .video-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .video-thumb::after { content: '▶'; position: absolute; font-size: 36px; color: rgba(255,255,255,0.85); text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  .video-meta { padding: 10px 12px; }
+  .video-title { font-size: 12px; color: var(--text); line-height: 1.4; }
+
+  /* Certifications */
+  .cert-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cert-badge { font-family: var(--mono); font-size: 11px; padding: 4px 10px; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; font-weight: 500; letter-spacing: 0.02em; }
+
+  /* Footer */
+  .footer-metadata { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px 28px; background: var(--surface-muted); border: 1px solid var(--border); border-radius: 4px; margin-top: 24px; }
+  .footer-metadata .meta-item .label { font-size: 9px; }
+  .footer-metadata .meta-item .value { font-size: 11px; }
+
+  /* Print-friendly */
+  @media print {
+    body { background: white; }
+    .container { max-width: none; padding: 12px; }
+    section, .banner, .footer-metadata { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+  }
+
+  @media (max-width: 720px) {
+    .compare-grid, .meta-grid { grid-template-columns: 1fr; }
+    .banner { grid-template-columns: 1fr; }
+    .banner-right { text-align: left; }
+    .kpi-strip { grid-template-columns: 1fr; }
+    .cost-breakdown { grid-template-columns: 1fr; }
+    .kpi-value { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<!-- Data payload: Power Automate injects actual data here at runtime -->
+<script type="text/plain" id="flat-data-b64">@{base64(string(body('Parse_JSON_-_Flat_Row')))}</script>
+
+<script type="text/plain" id="extraction-data-b64">@{base64(outputs('Compose_-_Extraction_Metadata'))}</script>
+
+<script type="text/plain" id="cost-data-b64">@{base64(string(outputs('Compose_-_Cost_Metadata')))}</script>
+
+<script>
+(function() {
+  const flatB64 = document.getElementById('flat-data-b64').textContent.replace(/\s/g, '');
+  const data = JSON.parse(decodeURIComponent(escape(atob(flatB64))));
+  const extB64 = document.getElementById('extraction-data-b64').textContent.replace(/\s/g, '');
+  const ext = JSON.parse(decodeURIComponent(escape(atob(extB64))));
+  const costB64 = document.getElementById('cost-data-b64').textContent.replace(/\s/g, '');
+  let cost = {};
+  try { cost = JSON.parse(decodeURIComponent(escape(atob(costB64)))); } catch(e) { cost = {}; }
+  const app = document.getElementById('app');
+
+  // Formatting helpers
+  function fmtDuration(sec) {
+    if (sec == null || isNaN(sec)) return '—';
+    sec = Math.round(sec);
+    if (sec < 60) return sec + 's';
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m + 'm ' + s + 's';
+  }
+  function fmtUSD(n) {
+    if (n == null || isNaN(n)) return '—';
+    if (n < 0.01) return '<$0.01';
+    return '$' + n.toFixed(2);
+  }
+  function fmtNum(n) {
+    if (n == null || isNaN(n)) return '—';
+    return Number(n).toLocaleString();
+  }
+
+  // Confidence tier helper
+  function confTier(n) {
+    if (n == null) return null;
+    if (n >= 90) return 'high';
+    if (n >= 70) return 'mid';
+    return 'low';
+  }
+  function confBadge(n) {
+    if (n == null || n === 0) return '';
+    const tier = confTier(n);
+    return `<span class="conf conf-${tier}">${n}%</span>`;
+  }
+
+  // Detect indexed fields (e.g., feature_bullet_1, feature_bullet_2...)
+  function collectIndexed(prefix) {
+    const out = [];
+    Object.keys(data).forEach(k => {
+      if (k.startsWith(prefix)) {
+        const match = k.match(new RegExp('^' + prefix + '(\\d+)$'));
+        if (match) out.push({ idx: parseInt(match[1]), value: data[k] });
+      }
+    });
+    return out.sort((a,b) => a.idx - b.idx).map(x => x.value).filter(v => v != null && v !== '');
+  }
+
+  // Detect grouped indexed fields (image_1_url, image_1_alt, image_1_type)
+  function collectGrouped(pattern) {
+    const groups = {};
+    Object.keys(data).forEach(k => {
+      const match = k.match(pattern);
+      if (match) {
+        const idx = parseInt(match[1]);
+        const field = match[2];
+        if (!groups[idx]) groups[idx] = {};
+        groups[idx][field] = data[k];
+      }
+    });
+    return Object.keys(groups).sort((a,b) => parseInt(a) - parseInt(b)).map(k => groups[k]);
+  }
+
+  const featureBullets = collectIndexed('feature_bullet_');
+  const seoKeywords = collectIndexed('seo_keyword_');
+  const images = collectGrouped(/^image_(\d+)_(url|alt|type)$/);
+  const documents = collectGrouped(/^document_(\d+)_(url|title|type)$/);
+  const videos = collectGrouped(/^video_(\d+)_(url|title)$/);
+
+  // Fixed fields that are NOT specs (to be filtered out of dynamic spec table)
+  const nonSpecKeys = new Set([
+    'product_name','brand','manufacturer_part_number','model_number','upc','sku',
+    'short_description','long_description','extracted_short_description','extracted_long_description',
+    'certifications','price_observed_value','price_observed_currency',
+    'country_of_origin','warranty','overall_confidence','source_url'
+  ]);
+
+  // Collect specs (all flat keys that aren't fixed/indexed/grouped)
+  const specs = Object.keys(data).filter(k => {
+    if (nonSpecKeys.has(k)) return false;
+    if (/^feature_bullet_\d+$/.test(k)) return false;
+    if (/^seo_keyword_\d+$/.test(k)) return false;
+    if (/^image_\d+_(url|alt|type)$/.test(k)) return false;
+    if (/^document_\d+_(url|title|type)$/.test(k)) return false;
+    if (/^video_\d+_(url|title)$/.test(k)) return false;
+    return data[k] != null && data[k] !== '';
+  });
+
+  // Build HTML
+  let html = '';
+
+  // === BANNER — product identity only ===
+  const overall = data.overall_confidence || ext.extraction_metadata?.overall_confidence || 0;
+  html += `<div class="banner">
+    <div>
+      <div class="banner-meta">${data.brand || ''} · ${data.manufacturer_part_number || ''}</div>
+      <h1>${data.product_name || 'Untitled Product'}</h1>
+      <div class="banner-sub">Correlation ID: <span class="part">${ext.correlation_id || 'n/a'}</span></div>
+    </div>
+  </div>`;
+
+  // === KPI STRIP — Confidence | Duration | Cost ===
+  const confTierClass = confTier(overall) || 'low';
+  const duration = cost.run_duration_seconds;
+  const totalUsd = cost.estimated_total_usd;
+  const agentFired = cost.image_agent_fired === true;
+  html += `<div class="kpi-strip">
+    <div class="kpi kpi-confidence ${confTierClass}">
+      <div class="kpi-label">Overall Confidence</div>
+      <div class="kpi-value">${overall}<span class="suffix">%</span></div>
+      <div class="kpi-sub">${confTierClass === 'high' ? 'high — ready for PIM' : confTierClass === 'mid' ? 'medium — review recommended' : 'low — human review required'}</div>
+    </div>
+    <div class="kpi kpi-duration">
+      <div class="kpi-label">Run Duration</div>
+      <div class="kpi-value">${fmtDuration(duration)}</div>
+      <div class="kpi-sub">${cost.run_start_iso ? 'started ' + new Date(cost.run_start_iso).toLocaleTimeString() : ''}</div>
+    </div>
+    <div class="kpi kpi-cost">
+      <div class="kpi-label">Cost to Execute</div>
+      <div class="kpi-value">${fmtUSD(totalUsd)}</div>
+      <div class="kpi-sub">${agentFired ? 'image agent fired' : 'standard path'}</div>
+    </div>
+  </div>`;
+
+  // === INPUTS + RUN METADATA ===
+  html += `<section>
+    <div class="section-header"><h2>Enrichment Request</h2><span class="count">${ext.run_timestamp ? new Date(ext.run_timestamp).toLocaleString() : ''}</span></div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="label">Input Brand</div><div class="value">${ext.input_brand || '—'}</div></div>
+      <div class="meta-item"><div class="label">Input Part #</div><div class="value">${ext.input_part_number || '—'}</div></div>
+      <div class="meta-item"><div class="label">Provided URL</div><div class="value">${ext.input_provided_url ? '<a href="'+ext.input_provided_url+'" target="_blank">'+ext.input_provided_url+'</a>' : '<span style="color:var(--text-muted)">(none — discovered via search)</span>'}</div></div>
+      <div class="meta-item"><div class="label">Source URL</div><div class="value">${data.source_url ? '<a href="'+data.source_url+'" target="_blank">'+data.source_url+'</a>' : '—'}</div></div>
+    </div>
+  </section>`;
+
+  // === PRODUCT IDENTITY ===
+  const identityFields = [
+    {k:'product_name', label:'Product Name', conf:ext.confidence_by_field?.product_name},
+    {k:'brand', label:'Brand', conf:ext.confidence_by_field?.brand},
+    {k:'manufacturer_part_number', label:'Manufacturer Part #', conf:ext.confidence_by_field?.manufacturer_part_number},
+    {k:'model_number', label:'Model Number', conf:ext.confidence_by_field?.model_number},
+    {k:'upc', label:'UPC', conf:ext.confidence_by_field?.upc, critical:true},
+    {k:'sku', label:'SKU', conf:ext.confidence_by_field?.sku, critical:true}
+  ];
+  html += `<section>
+    <div class="section-header"><h2>Product Identity</h2></div>
+    <table class="spec-table">`;
+  identityFields.forEach(f => {
+    const val = data[f.k];
+    const displayVal = (val == null || val === '') ? (f.critical ? '<span class="missing-pill">⚠ Not Found</span>' : '<span style="color:var(--text-muted)">—</span>') : val;
+    html += `<tr><td>${f.label}</td><td>${displayVal} ${val ? confBadge(f.conf) : ''}</td></tr>`;
+  });
+  html += `</table></section>`;
+
+  // === GENERATED VS EXTRACTED DESCRIPTIONS ===
+  html += `<section>
+    <div class="section-header"><h2>Content Comparison</h2><span class="count">source vs. generated</span></div>
+    <div style="margin-bottom:16px">
+      <div class="col-label" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Short Description</div>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <div class="col-header"><span class="col-label">Extracted (Source)</span><span class="col-tag col-tag-source">verbatim</span></div>
+          <div class="content-block">${data.extracted_short_description || '—'}</div>
+        </div>
+        <div class="compare-col">
+          <div class="col-header"><span class="col-label">Generated (SiteOne Voice)</span><span class="col-tag col-tag-generated">rewritten</span></div>
+          <div class="content-block">${data.short_description || '—'}</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="col-label" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Long Description</div>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <div class="col-header"><span class="col-label">Extracted (Source)</span><span class="col-tag col-tag-source">verbatim</span></div>
+          <div class="content-block">${data.extracted_long_description || '—'}</div>
+        </div>
+        <div class="compare-col">
+          <div class="col-header"><span class="col-label">Generated (SiteOne Voice)</span><span class="col-tag col-tag-generated">rewritten</span></div>
+          <div class="content-block">${data.long_description || '—'}</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  // === FEATURE BULLETS ===
+  if (featureBullets.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>Feature Bullets</h2><span class="count">${featureBullets.length} items</span></div>
+      <ul class="bullet-list">`;
+    featureBullets.forEach((b, i) => {
+      html += `<li><span class="bullet-num">${String(i+1).padStart(2,'0')}</span><span>${b}</span></li>`;
+    });
+    html += `</ul></section>`;
+  }
+
+  // === SPECIFICATIONS ===
+  if (specs.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>Specifications</h2><span class="count">${specs.length} attributes</span></div>
+      <table class="spec-table">`;
+    specs.forEach(k => {
+      const conf = ext.confidence_by_field?.[k];
+      html += `<tr><td>${k}</td><td>${data[k]} ${confBadge(conf)}</td></tr>`;
+    });
+    html += `</table></section>`;
+  }
+
+  // === CERTIFICATIONS ===
+  if (data.certifications) {
+    const certs = data.certifications.split(',').map(s => s.trim()).filter(Boolean);
+    html += `<section>
+      <div class="section-header"><h2>Certifications</h2><span class="count">${certs.length} items</span></div>
+      <div class="cert-list">`;
+    certs.forEach(c => { html += `<span class="cert-badge">${c}</span>`; });
+    html += `</div></section>`;
+  }
+
+  // === IMAGE GALLERY ===
+  if (images.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>Image Gallery</h2><span class="count">${images.length} images</span></div>
+      <div class="gallery">`;
+    images.forEach((img, i) => {
+      html += `<div class="img-card">
+        <div class="img-wrap"><img src="${img.url}" alt="${img.alt || ''}" loading="lazy"></div>
+        <div class="img-meta"><span class="img-type">${img.type || 'image'}</span> · ${String(i+1).padStart(2,'0')}</div>
+      </div>`;
+    });
+    html += `</div></section>`;
+  }
+
+  // === DOCUMENTS ===
+  if (documents.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>Documents &amp; Assets</h2><span class="count">${documents.length} files</span></div>
+      <div class="doc-list">`;
+    documents.forEach(d => {
+      html += `<a class="doc-item" href="${d.url}" target="_blank" rel="noopener">
+        <div class="doc-icon">PDF</div>
+        <div><div class="doc-title">${d.title || 'Untitled'}</div><div class="doc-type">${d.type || 'document'}</div></div>
+        <div class="doc-arrow">→</div>
+      </a>`;
+    });
+    html += `</div></section>`;
+  }
+
+  // === VIDEOS ===
+  if (videos.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>Videos</h2><span class="count">${videos.length} videos</span></div>
+      <div class="video-list">`;
+    videos.forEach(v => {
+      html += `<a class="video-card" href="${v.url}" target="_blank" rel="noopener">
+        <div class="video-thumb"><img src="${v.url}" alt=""></div>
+        <div class="video-meta"><div class="video-title">${v.title || 'Untitled'}</div></div>
+      </a>`;
+    });
+    html += `</div></section>`;
+  }
+
+  // === SEO KEYWORDS ===
+  if (seoKeywords.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>SEO Keywords</h2><span class="count">${seoKeywords.length} keywords</span></div>
+      <div class="tag-cloud">`;
+    seoKeywords.forEach(k => { html += `<span class="tag">${k}</span>`; });
+    html += `</div></section>`;
+  }
+
+  // === AUDIT TRAIL / EXCLUDED URLS ===
+  if (ext.excluded_urls && ext.excluded_urls.length > 0) {
+    html += `<section>
+      <div class="section-header"><h2>Audit — Sources Considered but Excluded</h2><span class="count">${ext.excluded_urls.length}</span></div>
+      <table class="spec-table">
+        <thead><tr><th>URL</th><th>Reason</th></tr></thead>`;
+    ext.excluded_urls.forEach(x => {
+      html += `<tr><td style="font-family:var(--mono);font-size:11px;word-break:break-all;"><a href="${x.url}" target="_blank" style="color:var(--text-muted);text-decoration:none;">${x.url}</a></td><td>${x.reason}</td></tr>`;
+    });
+    html += `</table></section>`;
+  }
+
+  // === EXTRACTION NOTES ===
+  const notes = ext.extraction_metadata?.extraction_notes;
+  const notFound = ext.extraction_metadata?.fields_not_found || [];
+  if (notes || notFound.length) {
+    html += `<section>
+      <div class="section-header"><h2>Extraction Notes</h2></div>
+      ${notes ? `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">${notes}</p>` : ''}
+      ${notFound.length ? `<div style="margin-top:8px"><div class="col-label" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">Fields Not Found</div><div class="tag-cloud">${notFound.map(f=>`<span class="tag" style="color:var(--warning);background:var(--warning-bg);border-color:var(--warning);">${f}</span>`).join('')}</div></div>` : ''}
+    </section>`;
+  }
+
+  // === COST BREAKDOWN SECTION ===
+  html += `<section>
+    <div class="section-header"><h2>Cost Breakdown</h2><span class="count">estimated</span></div>
+    <div class="cost-breakdown">
+      <div class="cost-item">
+        <div class="cost-service">AI Builder</div>
+        <div class="cost-value">${fmtNum(cost.ai_builder_credits)} credits</div>
+        <div class="cost-usd">${fmtUSD(cost.estimated_ai_builder_usd)}</div>
+      </div>
+      <div class="cost-item">
+        <div class="cost-service">Firecrawl</div>
+        <div class="cost-value">${fmtNum(cost.firecrawl_credits)} credit${cost.firecrawl_credits === 1 ? '' : 's'}</div>
+        <div class="cost-usd">${fmtUSD(cost.estimated_firecrawl_usd)}</div>
+      </div>
+      <div class="cost-item">
+        <div class="cost-service">Serper Search</div>
+        <div class="cost-value">${fmtNum(cost.serper_searches)} search${cost.serper_searches === 1 ? '' : 'es'}</div>
+        <div class="cost-usd">${fmtUSD(cost.estimated_serper_usd)}</div>
+      </div>
+    </div>
+    <div class="cost-disclaimer">${cost.conversion_rates_disclaimer || 'Estimated USD based on approximate rates.'}</div>
+  </section>`;
+
+  // === FOOTER METADATA ===
+  html += `<div class="footer-metadata">
+    <div class="meta-item"><div class="label">Correlation ID</div><div class="value">${ext.correlation_id || '—'}</div></div>
+    <div class="meta-item"><div class="label">Run Start</div><div class="value">${cost.run_start_iso ? new Date(cost.run_start_iso).toLocaleString() : (ext.run_timestamp || '—')}</div></div>
+    <div class="meta-item"><div class="label">Run End</div><div class="value">${cost.run_end_iso ? new Date(cost.run_end_iso).toLocaleString() : '—'}</div></div>
+    <div class="meta-item"><div class="label">Run Duration</div><div class="value">${fmtDuration(cost.run_duration_seconds)}</div></div>
+    <div class="meta-item"><div class="label">AI Builder Credits</div><div class="value">${fmtNum(cost.ai_builder_credits)}</div></div>
+    <div class="meta-item"><div class="label">Firecrawl Credits</div><div class="value">${fmtNum(cost.firecrawl_credits)}</div></div>
+    <div class="meta-item"><div class="label">Serper Searches</div><div class="value">${fmtNum(cost.serper_searches)}</div></div>
+    <div class="meta-item"><div class="label">Image Agent</div><div class="value">${cost.image_agent_fired === true ? 'fired' : 'not needed'}</div></div>
+    <div class="meta-item"><div class="label">Fields Extracted</div><div class="value">${ext.extraction_metadata?.total_fields_extracted || '—'}</div></div>
+    <div class="meta-item"><div class="label">Overall Confidence</div><div class="value">${overall || 0}%</div></div>
+    <div class="meta-item"><div class="label">Total Cost (est.)</div><div class="value" style="color:var(--accent);font-weight:600;">${fmtUSD(cost.estimated_total_usd)}</div></div>
+  </div>`;
+
+  app.innerHTML = html;
+})();
+</script>
+</body>
+</html>

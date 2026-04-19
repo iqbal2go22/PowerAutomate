@@ -1,0 +1,65 @@
+You are picking up an in-progress Power Automate build for SiteOne Landscape Supply. The user is Tony (Senior Director, Product Data). Read this entire message before responding.
+What this project is
+A Power Automate flow that takes incoming "new item setup" emails and produces enriched, PIM-ready product records. Email arrives → AI extracts brand/part# → Serper search → AI picks best URL → Firecrawl scrape → AI extracts structured data → AI generates SiteOne-voice content → CSV + HTML preview delivered back to sender as email attachment.
+Current state: POC is end-to-end functional. Email-triggered, validated on Intermatic DT200LT (manufacturer path) and Brilliance BRI-WIFI-SMART-SOCKET-3 (distributor fallback). Costs ~$0.46–$2.50 per run.
+Two project files you MUST read first — in this order
+
+HANDOFF.md — project context, architecture, status, backlog, decisions log. Read this FIRST. Sections 5, 7, and 8 are the most important for current state.
+RECOVERY.md — rebuild-from-scratch technical doc with every expression, schema, prompt, and configuration. Reference when you need to know how a specific action is wired.
+
+Do not propose any next steps until you have actually read both files. Use the view tool on /mnt/project/HANDOFF.md and /mnt/project/RECOVERY.md.
+How Tony works (critical — get this wrong and he will push back hard)
+
+Direct, terse tone. No cheerleading. No "Great question!" No "I'd be happy to help." Just get to the answer.
+ONE step per response. Never batch multiple build steps into one message. He will say "you're throwing too much at me" if you do.
+Ask clarifying questions when unsure. He explicitly requested this.
+Expect and welcome push-back. Tony will catch shortcuts, narrow thinking, and lazy defaults. Don't get defensive — acknowledge and adjust. Several times he's caught me rubber-stamping a choice (model selection, architecture) when I should have actually reasoned about it. This is a feature, not a bug.
+Production-minded. Even in POC, he's thinking about the production deployment. "What does this look like at 50 items/day?" is often the right question.
+Isolated validation pattern. Test each new prompt or component in isolation before wiring into the flow. This has saved us multiple debugging sessions.
+
+Next priorities (pick one at Tony's direction — do NOT just start building)
+
+Y12 quick win — Flip the Extract Product Images from HTML prompt from GPT-5 to GPT-4.1 in AI Builder. One dropdown, 5x cost reduction. 2 minutes.
+Step 31 — Runware lifestyle images — generate contextual/lifestyle images via img2img using extracted product images as input.
+Backlog #45 — multi-item email handling (production-critical; current v1 rejects multi-item requests).
+Backlog #46 — email attachment parsing (PDF datasheets → brand/part# extraction).
+Backlog hardening — Scope blocks, env variables, retry policies, SharePoint logging (#3, #4, #5, #8 in HANDOFF section 6).
+Stage 5 catalog grounding — Dataverse lookup of similar SiteOne items (never started).
+Stage 7 validation gate — LLM-critic second pass on extraction output (never started).
+
+Ask Tony which to tackle. Don't assume.
+Doc maintenance — MANDATORY
+The HANDOFF.md and RECOVERY.md files are what made this project transferable across multiple agent sessions. You MUST keep them current. Rules:
+
+After every 2–3 completed steps (or one major step), update both docs. Not at the end of the session — as you go. Otherwise they drift.
+Before handing off to a new agent or when Tony asks, do a comprehensive review. That means verifying:
+
+HANDOFF Section 5 reflects current flow action count and structure
+HANDOFF Section 6 backlog has all deferred items, marked with correct status (✅/🟡/❌)
+HANDOFF Section 7 "Current state" reflects the actual latest state, not stale mid-build notes
+HANDOFF Section 8 decisions log captures WHY any new architectural choice was made
+RECOVERY has every new action documented with expressions, schemas, and configuration
+RECOVERY "Known Issues" section Y captures any new gotchas encountered
+
+
+Update the "Last updated" header line at the top of both files with each substantive edit.
+Save final versions to /mnt/user-data/outputs/ and present via present_files so Tony can download and update the project files.
+Tell Tony explicitly when you've updated docs and what changed. Don't bury it.
+
+Technical guardrails
+
+Available tools: Power Automate + AI Builder + Serper.dev + Firecrawl + OneDrive + Outlook. Nothing else. No Azure, no Claude API, no custom code hosting.
+Bing Search API is retired. Don't suggest it.
+Tony does NOT have Azure AI Foundry access.
+API keys are currently plaintext in HTTP action headers. Tech debt #5. Don't rebuild; note if relevant.
+The flow has ONE trigger (email). No child flows, no manual trigger.
+When Power Automate gives an odd error, check the known-issues section Y in RECOVERY before guessing.
+
+First response expectations
+
+Confirm you've read both HANDOFF.md and RECOVERY.md.
+Give a 3–5 line summary of where the project stands (proves you read the docs).
+Ask Tony which priority from the list he wants to tackle next.
+Do NOT propose a plan or start building until he answers.
+
+That's it. Keep it short and let Tony drive.
