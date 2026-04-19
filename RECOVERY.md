@@ -2,7 +2,7 @@
 
 **Purpose:** Complete configuration of every action, expression, schema, and prompt so the entire flow can be rebuilt from scratch if destroyed or corrupted.
 **Companion to:** `HANDOFF.md` (project context and status)
-**Last updated:** Apr 19, 2026 — Step 32-3a complete. New top-level variable `Init - Google API Calls Total` (Integer, var name `google_api_calls_total`, init 0) added to the cost tracker variables block — foundation for the Gemini lifestyle cost line in Compose - Cost Metadata. See Section C8 and Section V3. Previous: Step 32-2 complete end-to-end. Lifestyle image generation via Gemini Nano Banana 2 working (Brilliance validated Apr 19). Y14 RESOLVED: Gemini returns 1 part (image at `[0]`) — not 2 (text + image at `[1]`) as initial build assumed. Fix = coalesce pattern on parts index. Diagnostic `Compose - Gemini Debug` added between Parse JSON and Save (remove before prod). Step 31 email body redesign complete. Remaining Step 32 work: 32-3b Increment, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost line, 32-4 HTML lifestyle section, 32-5 Intermatic validation. See Section Z for full Step 32 action configs.
+**Last updated:** Apr 19, 2026 — Step 32-3b complete. `Increment - Google API Calls` action added directly after `HTTP - Gemini Lifestyle 1` in the TRUE branch of `Check - Has Reference Image`; increments `google_api_calls_total` by 1 per Gemini call. See Section V3 Increment actions table. Previous: Step 32-3a complete (new top-level variable `Init - Google API Calls Total`, Integer, init 0). Step 32-2 complete end-to-end. Lifestyle image generation via Gemini Nano Banana 2 working (Brilliance validated Apr 19). Y14 RESOLVED: Gemini returns 1 part (image at `[0]`) — not 2 (text + image at `[1]`) as initial build assumed. Fix = coalesce pattern on parts index. Diagnostic `Compose - Gemini Debug` added between Parse JSON and Save (remove before prod). Step 31 email body redesign complete. Remaining Step 32 work: 32-3b Increment, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost line, 32-4 HTML lifestyle section, 32-5 Intermatic validation. See Section Z for full Step 32 action configs.
 
 ---
 
@@ -1695,6 +1695,7 @@ Each placed directly AFTER the service call it tracks:
 | After `AI - Extract Product Images` (TRUE branch only) | `Increment - AI Credits (Image Agent)` | `ai_builder_credits_total` += `coalesce(int(body('AI_-_Extract_Product_Images')?['responsev2']?['predictionOutput']?['costAsAiBuilderCredits']), 0)` |
 | After `AI - Generate Content` | `Increment - AI Credits (Generate Content)` | `ai_builder_credits_total` += `coalesce(int(body('AI_-_Generate_Content')?['responsev2']?['predictionOutput']?['costAsAiBuilderCredits']), 0)` |
 | After `AI - Flatten Row` | `Increment - AI Credits (Flatten Row)` | `ai_builder_credits_total` += `coalesce(int(body('AI_-_Flatten_Row')?['responsev2']?['predictionOutput']?['costAsAiBuilderCredits']), 0)` |
+| After `HTTP - Gemini Lifestyle 1` (TRUE branch of `Check - Has Reference Image`) | `Increment - Google API Calls` *(Step 32-3b)* | `google_api_calls_total` += `1` (plain integer — Gemini doesn't return a credit/cost field in response body, so we count calls and multiply by $0.045/call in Compose - Cost Metadata) |
 
 ### Compose - Cost Metadata
 
