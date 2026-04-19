@@ -2,7 +2,7 @@
 
 **Purpose:** Complete configuration of every action, expression, schema, and prompt so the entire flow can be rebuilt from scratch if destroyed or corrupted.
 **Companion to:** `HANDOFF.md` (project context and status)
-**Last updated:** Apr 19, 2026 — Step 32-2 complete end-to-end. Lifestyle image generation via Gemini Nano Banana 2 working (Brilliance validated Apr 19). Y14 RESOLVED: Gemini returns 1 part (image at `[0]`) — not 2 (text + image at `[1]`) as initial build assumed. Fix = coalesce pattern on parts index. Diagnostic `Compose - Gemini Debug` added between Parse JSON and Save (remove before prod). Step 31 email body redesign complete. Remaining Step 32 work: 32-3 cost tracker, 32-4 HTML preview section, 32-5 Intermatic validation. See Section Z for full Step 32 action configs.
+**Last updated:** Apr 19, 2026 — Step 32-3a complete. New top-level variable `Init - Google API Calls Total` (Integer, var name `google_api_calls_total`, init 0) added to the cost tracker variables block — foundation for the Gemini lifestyle cost line in Compose - Cost Metadata. See Section C8 and Section V3. Previous: Step 32-2 complete end-to-end. Lifestyle image generation via Gemini Nano Banana 2 working (Brilliance validated Apr 19). Y14 RESOLVED: Gemini returns 1 part (image at `[0]`) — not 2 (text + image at `[1]`) as initial build assumed. Fix = coalesce pattern on parts index. Diagnostic `Compose - Gemini Debug` added between Parse JSON and Save (remove before prod). Step 31 email body redesign complete. Remaining Step 32 work: 32-3b Increment, 32-3c Compose - Cost Metadata update, 32-3d HTML template cost line, 32-4 HTML lifestyle section, 32-5 Intermatic validation. See Section Z for full Step 32 action configs.
 
 ---
 
@@ -1679,6 +1679,7 @@ Expected production mix once observed: if 80% of items hit FALSE branch, net cos
 | `ai_builder_credits_total` | Integer | 0 | Accumulates `costAsAiBuilderCredits` from all AI Builder prompt responses |
 | `firecrawl_credits_total` | Integer | 0 | Accumulates `creditsUsed` from Firecrawl responses |
 | `serper_searches_total` | Integer | 0 | Count of Serper API calls (always 1 currently) |
+| `google_api_calls_total` | Integer | 0 | Count of Gemini Nano Banana 2 calls (Step 32-3a). Used to compute `estimated_google_usd` at $0.045/call. |
 
 ### Increment actions (8 total)
 

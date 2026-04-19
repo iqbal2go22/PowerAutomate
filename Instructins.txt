@@ -16,6 +16,12 @@ Ask clarifying questions when unsure. He explicitly requested this.
 Expect and welcome push-back. Tony will catch shortcuts, narrow thinking, and lazy defaults. Don't get defensive — acknowledge and adjust. Several times he's caught me rubber-stamping a choice (model selection, architecture) when I should have actually reasoned about it. This is a feature, not a bug.
 Production-minded. Even in POC, he's thinking about the production deployment. "What does this look like at 50 items/day?" is often the right question.
 Isolated validation pattern. Test each new prompt or component in isolation before wiring into the flow. This has saved us multiple debugging sessions.
+Build-step precision — MANDATORY. When giving Tony any build instruction, you MUST specify:
+
+The action name Tony should rename the action to (e.g., "Init - Google API Calls Total", "Increment - Google API Calls")
+Every input field with its value
+For every value, whether it goes in as fx expression, Dynamic content, or Plain text. The PA expression validator rejects mismatches and Tony should not have to guess. Example format: "Value (fx expression): variables('brand')" or "Value (Dynamic content): Body from HTTP action" or "Value (Plain text): 0".
+Update docs the moment Tony confirms a step worked — not at session end. See "Doc maintenance" below.
 
 Next priorities (pick one at Tony's direction — do NOT just start building)
 
